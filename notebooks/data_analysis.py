@@ -10,3 +10,6 @@ print("\nSummary Stats:\n", df.describe())
 
 df = df.dropna()
 print("Nulls remaining:\n", df.isnull().sum())
+
+df['pickup_datetime'] = pd.to_datetime(df['pickup_datetime'])
+df = df[(df['fare_amount'] > 0) & (df['trip_distance'] > 0)]
