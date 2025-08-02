@@ -1,13 +1,13 @@
 import pandas as pd
 import numpy as np
+import os
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 from scipy import stats
-
-# Load data from raw folder
+# # Load data from raw folder
 plant_fact_path = r'C:\Users\Aime\Desktop\BigData - Exam\data\raw\Plant_DTS.xls'
 accounts_path = r'C:\Users\Aime\Desktop\BigData - Exam\data\raw\AccountAnalysed.xlsx'
 plant_hierarchy_path = r'C:\Users\Aime\Desktop\BigData - Exam\data\raw\Plant_Hearchy.xlsx'
@@ -164,3 +164,236 @@ for i in range(len(corr.columns)):
 plt.tight_layout()
 plt.savefig(f"{output_folder}correlation_heatmap.png", bbox_inches='tight')
 plt.close()
+
+
+
+
+# Load your Excel file
+input_file = "data/enhanced/enhanced_plant_fact.xlsx"
+output_dir = "powerbi/screenshots"
+os.makedirs(output_dir, exist_ok=True)
+
+# Load DataFrame
+df = pd.read_excel(input_file)
+
+# Quantity Distribution Plot
+plt.figure(figsize=(8, 6))
+sns.histplot(df['quantity'], bins=30, kde=False)
+plt.title('Quantity Distribution')
+plt.xlabel('Quantity')
+plt.ylabel('Frequency')
+plt.savefig(f"{output_dir}/quantity_dist.png")
+plt.close()
+
+# Quantity Distribution with KDE
+plt.figure(figsize=(8, 6))
+sns.histplot(df['quantity'], bins=30, kde=True)
+plt.title('Quantity Distribution with KDE')
+plt.xlabel('Quantity')
+plt.ylabel('Density')
+plt.savefig(f"{output_dir}/quantity_dist_kde.png")
+plt.close()
+
+# Quantity Boxplot
+plt.figure(figsize=(6, 4))
+sns.boxplot(x=df['quantity'])
+plt.title('Boxplot of Quantity')
+plt.savefig(f"{output_dir}/quantity_boxplot.png")
+plt.close()
+
+# Correlation Heatmap
+plt.figure(figsize=(10, 8))
+correlation = df.select_dtypes(include='number').corr()
+sns.heatmap(correlation, annot=True, cmap='coolwarm')
+plt.title('Correlation Heatmap')
+plt.savefig(f"{output_dir}/correlation_heatmap.png")
+plt.close()
+
+# Sales vs Quantity Scatter Plot
+if 'Sales_USD' in df.columns:
+    plt.figure(figsize=(8, 6))
+    sns.scatterplot(x='quantity', y='Sales_USD', data=df)
+    plt.title('Sales vs Quantity')
+    plt.xlabel('Quantity')
+    plt.ylabel('Sales (USD)')
+    plt.savefig(f"{output_dir}/sales_vs_qty.png")
+    plt.close()
+    
+
+
+from sklearn.cluster import KMeans
+
+# Load your enhanced dataset
+df = pd.read_excel('data/enhanced/enhanced_plant_fact.xlsx')
+
+# Strip any spaces from column names just in case
+df.columns = df.columns.str.strip()
+
+# === 1. 📊 Price per Unit vs Quantity Plot ===
+plt.figure(figsize=(10, 6))
+sns.scatterplot(
+    data=df,
+    x='Sales_Per_Unit',    # Use the exact column name from your data
+    y='quantity',          # lowercase 'quantity'
+    hue='country2',        # your country column
+    palette='tab10',
+    alpha=0.7
+)
+plt.title('Price per Unit vs Quantity')
+plt.xlabel('Price per Unit (USD)')
+plt.ylabel('Quantity Sold')
+plt.grid(True)
+plt.tight_layout()
+plt.savefig('powerbi/screenshots/price_vs_quantity.png')
+plt.close()
+
+# === 2. 🌍 Total Quantity Sold per Country ===
+plt.figure(figsize=(10, 6))
+country_summary = df.groupby('country2')['quantity'].sum().sort_values(ascending=False)
+sns.barplot(
+    x=country_summary.values,
+    y=country_summary.index,
+    palette='viridis'
+)
+plt.title('Total Quantity Sold per Country')
+plt.xlabel('Quantity')
+plt.ylabel('Country')
+plt.tight_layout()
+plt.savefig('powerbi/screenshots/quantity_per_country.png')
+plt.close()
+
+# === 3. 🤖 K-Means Clustering (Sales USD vs Quantity) ===
+# Select relevant columns and drop missing values
+cluster_df = df[['Sales_USD', 'quantity']].dropna()
+
+# Fit KMeans clustering model
+kmeans = KMeans(n_clusters=3, random_state=42)
+cluster_df['Cluster'] = kmeans.fit_predict(cluster_df)
+
+# Plot clusters with centroids
+plt.figure(figsize=(10, 6))
+sns.scatterplot(
+    data=cluster_df,
+    x='Sales_USD',
+    y='quantity',
+    hue='Cluster',
+    palette='Set2'
+)
+plt.scatter(
+    kmeans.cluster_centers_[:, 0],
+    kmeans.cluster_centers_[:, 1],
+    s=200,
+    c='red',
+    label='Centroids',
+    marker='X'
+)
+plt.title('K-Means Clustering (Sales USD vs Quantity)')
+plt.xlabel('Sales (USD)')
+plt.ylabel('Quantity')
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.savefig('powerbi/screenshots/kmeans_sales_quantity.png')
+plt.close()
+print("✅ All plots saved successfully in 'powerbi/screenshots/' 🎉")
+
+
+
+
+
+
+print("these is the start data visualization ")
+
+# We'll cluster using Sales_USD and quantity
+cluster_df = df[['Sales_USD', 'quantity']].dropna()
+
+# Optional: Normalize data to improve clustering performance
+from sklearn.preprocessing import StandardScaler
+scaler = StandardScaler()
+scaled_data = scaler.fit_transform(cluster_df)
+from sklearn.cluster import KMeans
+
+# Initialize and train KMeans model
+kmeans = KMeans(n_clusters=3, random_state=42, n_init=10)
+clusters = kmeans.fit_predict(scaled_data)
+
+# Add cluster labels to the dataframe
+cluster_df['Cluster'] = clusters
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Plot the clusters
+plt.figure(figsize=(10, 6))
+sns.scatterplot(
+    x=scaled_data[:, 0],  # Scaled Sales_USD
+    y=scaled_data[:, 1],  # Scaled quantity
+    hue=cluster_df['Cluster'],
+    palette='Set2'
+)
+
+# Plot centroids (scaled back)
+centroids = kmeans.cluster_centers_
+plt.scatter(
+    centroids[:, 0], centroids[:, 1],
+    s=200, c='red', marker='X', label='Centroids'
+)
+
+plt.title('KMeans Clustering (Sales vs Quantity)')
+plt.xlabel('Scaled Sales USD')
+plt.ylabel('Scaled Quantity')
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.savefig('powerbi/screenshots/kmeans_scaled.png')
+plt.close()
+
+score = silhouette_score(cluster_df[['Sales_USD', 'quantity']], clusters)
+print(f"🧪 Silhouette Score: {score:.3f}")
+
+
+
+
+# Load data (replace this with your own path)
+df = pd.read_excel("data/enhanced/enhanced_plant_fact.xlsx")
+
+
+
+# Select features for clustering
+X = df[['Sales_USD', 'quantity']]
+
+# Normalize the features (super important!)
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# Try k from 2 to 10
+k_values = list(range(2, 11))
+inertias = []
+silhouette_scores = []
+
+for k in k_values:
+    kmeans = KMeans(n_clusters=k, random_state=42)
+    kmeans.fit(X_scaled)
+    inertias.append(kmeans.inertia_)
+    score = silhouette_score(X_scaled, kmeans.labels_)
+    silhouette_scores.append(score)
+    print(f"k={k} ➤ Silhouette Score = {score:.3f}")
+
+# Plot Elbow Method
+plt.figure(figsize=(12, 5))
+
+plt.subplot(1, 2, 1)
+plt.plot(k_values, inertias, 'bo-')
+plt.xlabel('Number of Clusters (k)')
+plt.ylabel('Inertia (Distortion)')
+plt.title('🔺 Elbow Method')
+
+# Plot Silhouette Scores
+plt.subplot(1, 2, 2)
+plt.plot(k_values, silhouette_scores, 'go-')
+plt.xlabel('Number of Clusters (k)')
+plt.ylabel('Silhouette Score')
+plt.title('📈 Silhouette Score for k')
+
+plt.tight_layout()
+plt.show()
